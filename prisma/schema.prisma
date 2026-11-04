@@ -1,0 +1,221 @@
+// Prisma Schema - Checkout Multi-Bancos & Mercado Pago (PostgreSQL / Supabase / Produção)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  role          String    @default("ADMIN")
+  avatar        String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Product {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  imageUrl    String?       @map("image_url")
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  prices       Price[]
+  payments     Payment[]
+  paymentLinks PaymentLink[]
+
+  @@map("products")
+}
+
+model Price {
+  id            String      @id @default(uuid())
+  productId     String      @map("product_id")
+  amount        Float
+  currency      String      @default("BRL")
+  type          String      @default("ONE_TIME")
+  interval      String?
+  intervalCount Int?        @default(1) @map("interval_count")
+  trialDays     Int?        @default(0) @map("trial_days")
+  active        Boolean     @default(true)
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+  paymentLinks  PaymentLink[]
+
+  @@map("prices")
+}
+
+model Customer {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String
+  cpf           String?
+  phone         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  payments      Payment[]
+  subscriptions Subscription[]
+
+  @@map("customers")
+}
+
+model Payment {
+  id                    String        @id @default(uuid())
+  customerId            String?       @map("customer_id")
+  productId             String?       @map("product_id")
+  subscriptionId        String?       @map("subscription_id")
+  paymentLinkId         String?       @map("payment_link_id")
+
+  // Banco Emissor / Provedor
+  bankProvider          String        @default("mercadopago") @map("bank_provider")
+
+  // Mercado Pago / Gateway IDs
+  mpPaymentId           String?       @unique @map("mp_payment_id")
+  mpPreferenceId        String?       @map("mp_preference_id")
+  mpStatus              String?       @map("mp_status")
+  mpStatusDetail        String?       @map("mp_status_detail")
+  mpPaymentMethodId     String?       @map("mp_payment_method_id")
+  mpPaymentTypeId       String?       @map("mp_payment_type_id")
+
+  amount                Float
+  currency              String        @default("BRL")
+  
+  // PIX
+  pixQrCode             String?       @map("pix_qr_code")
+  pixQrCodeBase64       String?       @map("pix_qr_code_base64")
+  pixExpirationDate     DateTime?     @map("pix_expiration_date")
+
+  // Boleto
+  boletoUrl             String?       @map("boleto_url")
+  boletoBarcode         String?       @map("boleto_barcode")
+
+  status                String        @default("PENDING")
+  paidAt                DateTime?     @map("paid_at")
+  expiresAt             DateTime?     @map("expires_at")
+  
+  metadata              String?
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  customer              Customer?     @relation(fields: [customerId], references: [id])
+  product               Product?      @relation(fields: [productId], references: [id])
+  subscription          Subscription? @relation(fields: [subscriptionId], references: [id])
+  paymentLink           PaymentLink?  @relation(fields: [paymentLinkId], references: [id])
+
+  @@index([mpPaymentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+model Subscription {
+  id                  String             @id @default(uuid())
+  customerId          String             @map("customer_id")
+  priceId             String             @map("price_id")
+
+  mpPreapprovalId     String?            @unique @map("mp_preapproval_id")
+  mpPreapprovalPlanId String?            @map("mp_preapproval_plan_id")
+  mpInitPoint         String?            @map("mp_init_point")
+
+  status              String             @default("PENDING")
+  currentPeriodStart  DateTime?          @map("current_period_start")
+  currentPeriodEnd    DateTime?          @map("current_period_end")
+  cancelledAt         DateTime?          @map("cancelled_at")
+  
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+
+  customer            Customer           @relation(fields: [customerId], references: [id])
+  price               Price              @relation(fields: [priceId], references: [id])
+  payments            Payment[]
+
+  @@index([status])
+  @@map("subscriptions")
+}
+
+model PaymentLink {
+  id          String            @id @default(uuid())
+  productId   String            @map("product_id")
+  priceId     String            @map("price_id")
+  slug        String            @unique
+  
+  title       String
+  description String?
+
+  // Banco emissor / Gateway do link
+  bankProvider   String         @default("mercadopago") @map("bank_provider")
+  pixKey         String?        @map("pix_key")
+  pixKeyType     String?        @map("pix_key_type")
+  pixBeneficiary String?        @map("pix_beneficiary")
+  pixCity        String?        @default("SAO PAULO") @map("pix_city")
+  
+  active      Boolean           @default(true)
+  maxUses     Int?              @map("max_uses")
+  usedCount   Int               @default(0) @map("used_count")
+  expiresAt   DateTime?         @map("expires_at")
+  
+  acceptPix      Boolean        @default(true) @map("accept_pix")
+  acceptCard     Boolean        @default(true) @map("accept_card")
+  acceptBoleto   Boolean        @default(true) @map("accept_boleto")
+  
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  product     Product           @relation(fields: [productId], references: [id])
+  price       Price             @relation(fields: [priceId], references: [id])
+  payments    Payment[]
+
+  @@map("payment_links")
+}
+
+// Configuração dos Bancos e Gateways suportados
+model BankConfig {
+  id            String    @id @default(uuid())
+  code          String    @unique // "mercadopago", "nubank", "inter", "itau", "bradesco", "bb", "santander", "caixa", "c6", "asaas", "efi"
+  name          String
+  color         String    @default("#3b82f6")
+  icon          String    @default("🏦")
+  active        Boolean   @default(true)
+  isDefault     Boolean   @default(false) @map("is_default")
+  
+  // Chave PIX do Banco
+  pixKey        String?   @map("pix_key")
+  pixKeyType    String?   @default("ALEATORIA") @map("pix_key_type")
+  beneficiary   String?   @map("beneficiary")
+  city          String?   @default("SAO PAULO")
+  
+  // Credenciais para gateways automatizados
+  apiKey        String?   @map("api_key")
+  apiSecret     String?   @map("api_secret")
+  
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("bank_configs")
+}
+
+model WebhookLog {
+  id          String    @id @default(uuid())
+  source      String
+  eventType   String    @map("event_type")
+  payload     String
+  processed   Boolean   @default(false)
+  error       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("webhook_logs")
+}
