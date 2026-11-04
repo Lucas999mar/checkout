@@ -55,7 +55,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input-field bg-white/10 border-white/20 text-white placeholder:text-surface-500"
-                placeholder="admin@checkout.com"
+                placeholder="seu@email.com"
                 required
               />
             </div>
@@ -92,12 +92,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          <div className="mt-6 p-4 rounded-xl bg-white/5 border border-white/10">
-            <p className="text-surface-400 text-sm">
-              <strong className="text-surface-300">Demo:</strong> admin@checkout.com / admin123
-            </p>
-          </div>
         </div>
       </div>
     </main>

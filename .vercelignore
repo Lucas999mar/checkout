@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+prisma/dev.db
+*.db
+deploy-github.bat
+configurar-banco.bat
+GUIA_DEPLOY_PRODUCAO.md
+

@@ -45,13 +45,13 @@ export default function HomePage() {
             href="/dashboard"
             className="btn-primary text-lg px-8 py-4 inline-flex items-center gap-2"
           >
-            📊 Painel Admin
+            📊 Painel Administrativo
           </Link>
           <Link
             href="/pay/plano-starter"
             className="btn-secondary bg-white/10 border-white/20 text-white hover:bg-white/20 text-lg px-8 py-4 inline-flex items-center gap-2"
           >
-            🛒 Ver Checkout Demo
+            🛒 Realizar Pagamento
           </Link>
         </div>
 

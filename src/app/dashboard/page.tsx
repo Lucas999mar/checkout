@@ -312,24 +312,34 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {recentPayments.map((p) => (
-                <tr key={p.id} className="table-row">
-                  <td className="px-6 py-4">
-                    <span className="font-medium text-surface-700">{p.customerName}</span>
-                  </td>
-                  <td className="px-6 py-4 text-surface-500">{p.productName}</td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-surface-600">{getMethodLabel(p.method)}</span>
-                  </td>
-                  <td className="px-6 py-4 font-semibold text-surface-700">
-                    {formatCurrency(p.amount)}
-                  </td>
-                  <td className="px-6 py-4">{getStatusBadge(p.status)}</td>
-                  <td className="px-6 py-4 text-sm text-surface-500">
-                    {formatDate(p.createdAt)}
+              {recentPayments.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-surface-400">
+                    <span className="text-3xl block mb-2">💳</span>
+                    <p className="font-semibold text-surface-600">Nenhum pagamento registrado ainda.</p>
+                    <p className="text-xs text-surface-400 mt-1">Suas vendas reais aparecerão aqui em tempo real conforme forem efetuadas!</p>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                recentPayments.map((p) => (
+                  <tr key={p.id} className="table-row">
+                    <td className="px-6 py-4">
+                      <span className="font-medium text-surface-700">{p.customerName}</span>
+                    </td>
+                    <td className="px-6 py-4 text-surface-500">{p.productName}</td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-surface-600">{getMethodLabel(p.method)}</span>
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-surface-700">
+                      {formatCurrency(p.amount)}
+                    </td>
+                    <td className="px-6 py-4">{getStatusBadge(p.status)}</td>
+                    <td className="px-6 py-4 text-sm text-surface-500">
+                      {formatDate(p.createdAt)}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

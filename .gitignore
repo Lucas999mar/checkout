@@ -40,3 +40,5 @@ prisma/dev.db-journal
 *.tsbuildinfo
 next-env.d.ts
 
+
+.vercel
