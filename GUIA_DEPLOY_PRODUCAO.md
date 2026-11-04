@@ -121,3 +121,4 @@ Após o deploy:
 - **Login Inicial**: `admin@checkout.com`
 - **Senha Inicial**: `admin123`
 *(Recomendamos alterar a senha no banco ou adicionar novos administradores assim que entrar).*
+

@@ -45,3 +45,4 @@ echo  Login do Painel: admin@checkout.com ^| Senha: admin123
 echo ====================================================================
 echo.
 pause
+

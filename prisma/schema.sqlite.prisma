@@ -218,3 +218,4 @@ model WebhookLog {
   @@index([createdAt])
   @@map("webhook_logs")
 }
+
