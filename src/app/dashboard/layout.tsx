@@ -87,15 +87,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         } bg-white border-r border-surface-100 flex flex-col transition-all duration-300 fixed h-full z-30`}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-surface-100">
+        <div className="p-5 border-b border-surface-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-lg shadow-md">
-              C
-            </div>
+            <img
+              src="/logo.png"
+              alt="aiCheckout"
+              className="w-10 h-10 rounded-full object-cover shadow-sm shrink-0"
+            />
             {sidebarOpen && (
               <div className="animate-fade-in">
-                <h1 className="font-bold text-surface-800">Checkout Pro</h1>
-                <p className="text-xs text-surface-400">Painel Admin</p>
+                <h1 className="font-bold text-surface-800 text-base leading-tight">aiCheckout</h1>
+                <p className="text-[11px] text-surface-400 font-medium">Painel Admin</p>
               </div>
             )}
           </div>

@@ -6,17 +6,23 @@ export default function HomePage() {
       <div className="max-w-4xl w-full text-center space-y-12 animate-fade-in">
         {/* Hero */}
         <div className="space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-primary-300 text-sm font-medium backdrop-blur-sm">
-            <span className="w-2 h-2 rounded-full bg-accent-400 animate-pulse" />
-            Sistema de Pagamentos Ativo
+          <div className="flex justify-center">
+            <img
+              src="/logo.png"
+              alt="aiCheckout"
+              className="w-28 h-28 md:w-36 md:h-36 rounded-full object-cover shadow-2xl border-4 border-white/10 hover:scale-105 transition-transform"
+            />
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold text-white">
-            Checkout
-            <span className="bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent"> Pro</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-primary-300 text-sm font-medium backdrop-blur-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            Checkout Inteligente & Entrega Automática
+          </div>
+          <h1 className="text-5xl md:text-7xl font-extrabold text-white tracking-tight">
+            ai<span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Checkout</span>
           </h1>
           <p className="text-xl text-surface-300 max-w-2xl mx-auto leading-relaxed">
-            Sistema completo de pagamentos com Mercado Pago. PIX instantâneo, cartões, boleto,
-            assinaturas recorrentes e painel administrativo profissional.
+            Plataforma completa de pagamentos de alta conversão. PIX instantâneo, cartões, boleto,
+            assinaturas e entrega 100% automatizada de infoprodutos via WhatsApp e E-mail.
           </p>
         </div>
 

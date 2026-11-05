@@ -38,10 +38,15 @@ export default function LoginPage() {
     <main className="min-h-screen bg-gradient-to-br from-surface-900 via-primary-950 to-surface-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md animate-slide-up">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Checkout<span className="text-primary-400"> Pro</span>
+          <img
+            src="/logo.png"
+            alt="aiCheckout"
+            className="w-24 h-24 mx-auto rounded-full object-cover shadow-xl mb-4 border-2 border-white/10"
+          />
+          <h1 className="text-3xl font-extrabold text-white mb-1">
+            aiCheckout
           </h1>
-          <p className="text-surface-400">Acesse o painel administrativo</p>
+          <p className="text-surface-400 text-sm">Painel Administrativo & Gestão de Pagamentos</p>
         </div>
 
         <div className="glass-card bg-white/5 border-white/10 p-8">

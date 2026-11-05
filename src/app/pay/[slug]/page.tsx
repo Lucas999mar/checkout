@@ -583,9 +583,23 @@ export default function CheckoutPage() {
           {/* Product Summary Sidebar */}
           <div className="lg:col-span-2">
             <div className="glass-card p-6 sticky top-8">
-              <div className="w-full h-40 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-600 mb-6 flex items-center justify-center text-white shadow-md">
-                <span className="text-5xl">🛍️</span>
-              </div>
+              {linkData.product.imageUrl ? (
+                <div className="w-full h-48 rounded-xl overflow-hidden mb-6 bg-surface-100 border border-surface-200 shadow-sm flex items-center justify-center">
+                  <img
+                    src={linkData.product.imageUrl}
+                    alt={linkData.product.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-40 rounded-xl bg-gradient-to-br from-surface-900 via-primary-950 to-surface-900 mb-6 flex items-center justify-center text-white shadow-md">
+                  <img
+                    src="/logo.png"
+                    alt="aiCheckout"
+                    className="w-20 h-20 rounded-full object-cover shadow-lg border-2 border-white/20"
+                  />
+                </div>
+              )}
 
               <div className="flex items-center gap-2 mb-2">
                 <span className={`badge ${isRecurring ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}`}>
@@ -671,6 +685,10 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-surface-500">
                   <span>🏦</span> Nubank, Inter, Itaú, Bradesco, BB, Santander, Caixa, C6
+                </div>
+                <div className="pt-2 flex items-center justify-center gap-1.5 text-[11px] text-surface-400 border-t border-surface-100/60 mt-3">
+                  <img src="/logo.png" alt="aiCheckout" className="w-4 h-4 rounded-full inline-block" />
+                  <span>Tecnologia & Pagamentos protegidos por <strong>aiCheckout</strong></span>
                 </div>
               </div>
             </div>
