@@ -41,3 +41,4 @@ volumes:
   evolution_instances:
   evolution_store:
   waha_sessions:
+

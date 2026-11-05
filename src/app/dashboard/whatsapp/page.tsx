@@ -461,21 +461,58 @@ export default function WhatsAppConnectionPage() {
         </div>
       )}
 
-      {/* GUIA 1-MINUTO DOCKER COMPOSE */}
-      <div className="glass-card p-6 border border-surface-200 space-y-3">
-        <h4 className="font-bold text-surface-800 text-sm flex items-center gap-2">
-          <span>🐳</span> Como rodar sua própria Evolution API ou WAHA localmente em 1 minuto
-        </h4>
-        <p className="text-xs text-surface-600 leading-relaxed">
-          Criamos o arquivo <code>docker-compose.whatsapp.yml</code> na raiz deste projeto. Caso queira iniciar seu servidor local com 1 comando pelo terminal do Windows/Mac/Linux:
-        </p>
-        <div className="bg-surface-900 text-surface-100 p-3 rounded-xl font-mono text-xs overflow-x-auto">
-          <code>docker compose -f docker-compose.whatsapp.yml up -d</code>
+      {/* GUIA PRODUÇÃO NO RENDER & DOCKER */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Render Card */}
+        <div className="glass-card p-6 border-2 border-primary-200 bg-gradient-to-br from-primary-50/40 via-white to-blue-50/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs bg-primary-100 text-primary-800 font-bold px-2.5 py-0.5 rounded-full uppercase">
+              100% Online 24/7 (Recomendado)
+            </span>
+            <span className="text-xl">☁️</span>
+          </div>
+          <h4 className="font-bold text-surface-900 text-base">Hospedar Conector no Render</h4>
+          <p className="text-xs text-surface-600 leading-relaxed">
+            Ao rodar em produção no Render, sua conexão do WhatsApp fica ativa 24 horas por dia sem depender do seu computador ligado.
+          </p>
+          <ul className="text-xs text-surface-700 space-y-1.5 list-disc list-inside">
+            <li>Sessão e chaves salvas no <strong>Supabase PostgreSQL</strong> (nunca perde o login).</li>
+            <li><strong>Keep-Alive Vercel Cron</strong> ativo: o sistema pinga o servidor a cada 10 min para não dormir.</li>
+            <li>Configurado no arquivo <code>render.yaml</code> na raiz do projeto.</li>
+          </ul>
+          <div className="pt-2">
+            <a
+              href="https://dashboard.render.com"
+              target="_blank"
+              rel="noreferrer"
+              className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-all"
+            >
+              <span>🚀</span> Abrir Painel do Render (Deploy)
+            </a>
+          </div>
         </div>
-        <p className="text-[11px] text-surface-500">
-          Isso iniciará a Evolution API na porta <code>8080</code> com chave pronta <code>checkout2026secretkey</code>. Em seguida basta clicar no botão "Gerar QR Code" acima!
-        </p>
+
+        {/* Local Docker Card */}
+        <div className="glass-card p-6 border border-surface-200 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs bg-surface-100 text-surface-700 font-bold px-2.5 py-0.5 rounded-full uppercase">
+              Ambiente de Testes / Local
+            </span>
+            <span className="text-xl">💻</span>
+          </div>
+          <h4 className="font-bold text-surface-800 text-base">Rodar Local com Docker</h4>
+          <p className="text-xs text-surface-600 leading-relaxed">
+            Caso prefira testar no seu próprio computador antes de subir para a nuvem:
+          </p>
+          <div className="bg-surface-900 text-surface-100 p-2.5 rounded-xl font-mono text-[11px] overflow-x-auto">
+            <code>docker compose -f docker-compose.whatsapp.yml up -d</code>
+          </div>
+          <p className="text-[11px] text-surface-500">
+            Evolution API em <code>http://localhost:8080</code> com chave <code>checkout2026secretkey</code>.
+          </p>
+        </div>
       </div>
     </div>
   );
 }
+

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: evolution-checkout
+    env: docker
+    dockerfilePath: Dockerfile.evolution
+    plan: free
+    region: oregon
+    envVars:
+      - key: AUTHENTICATION_API_KEY
+        value: checkout2026secretkey
+      - key: DATABASE_ENABLED
+        value: "true"
+      - key: DATABASE_PROVIDER
+        value: postgresql
+      - key: DATABASE_CONNECTION_URI
+        sync: false
+      - key: DATABASE_CONNECTION_CLIENT_NAME
+        value: evolution_checkout
+      - key: AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES
+        value: "true"
+      - key: LOG_LEVEL
+        value: ERROR,WARN,INFO
+      - key: DEL_INSTANCE
+        value: "false"
