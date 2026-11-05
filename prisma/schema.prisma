@@ -193,6 +193,11 @@ model PaymentLink {
   deliveryUrl          String?   @map("delivery_url")
   deliveryContent      String?   @map("delivery_content")
   
+  // Link Externo / Redirecionamento (InfinitePay, Mercado Pago Recorrente, Bancos)
+  linkType             String?   @default("INTERNAL") @map("link_type") // "INTERNAL" | "EXTERNAL_REDIRECT"
+  externalUrl          String?   @map("external_url")
+  redirectClicks       Int       @default(0) @map("redirect_clicks")
+  
   createdAt   DateTime          @default(now()) @map("created_at")
   updatedAt   DateTime          @updatedAt @map("updated_at")
 

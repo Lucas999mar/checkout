@@ -16,12 +16,35 @@ export async function GET() {
       include: {
         product: true,
         price: true,
+        payments: {
+          select: {
+            id: true,
+            amount: true,
+            status: true,
+            paidAt: true,
+          },
+        },
         _count: { select: { payments: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ links });
+    const enrichedLinks = links.map((link) => {
+      const approvedPayments = link.payments.filter((p) => p.status === 'APPROVED');
+      const totalRevenue = approvedPayments.reduce((acc, p) => acc + p.amount, 0);
+      const approvedCount = approvedPayments.length;
+      const totalClicks = (link.redirectClicks || 0) + (link.usedCount || 0);
+
+      const { payments, ...rest } = link;
+      return {
+        ...rest,
+        totalRevenue,
+        approvedSales: approvedCount,
+        totalClicks,
+      };
+    });
+
+    return NextResponse.json({ links: enrichedLinks });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -52,6 +75,8 @@ export async function POST(request: NextRequest) {
       bankProvider = 'mercadopago',
       pixKey,
       pixBeneficiary,
+      linkType = 'INTERNAL',
+      externalUrl,
     } = body;
 
     if (!title) {
@@ -112,6 +137,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const finalLinkType = linkType === 'EXTERNAL_REDIRECT' || (externalUrl && externalUrl.trim().length > 0) ? 'EXTERNAL_REDIRECT' : 'INTERNAL';
+
     const link = await prisma.paymentLink.create({
       data: {
         productId,
@@ -127,6 +154,8 @@ export async function POST(request: NextRequest) {
         bankProvider: bankProvider || 'mercadopago',
         pixKey: pixKey || null,
         pixBeneficiary: pixBeneficiary || null,
+        linkType: finalLinkType,
+        externalUrl: externalUrl ? externalUrl.trim() : null,
         deliveryUrl: body.deliveryUrl || null,
         deliveryContent: body.deliveryContent || null,
       },

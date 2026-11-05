@@ -17,6 +17,8 @@ interface PaymentLinkData {
   slug: string;
   title: string;
   description: string;
+  linkType?: string;
+  externalUrl?: string | null;
   bankProvider?: string;
   pixKey?: string | null;
   pixBeneficiary?: string | null;
@@ -65,6 +67,21 @@ export default function CheckoutPage() {
         if (!res.ok) throw new Error(data.error);
         setLinkData(data.link);
         setSelectedPrice(data.link.price);
+
+        if (data.link.linkType === 'EXTERNAL_REDIRECT' && data.link.externalUrl) {
+          // Registrar intenção de pagamento e clique no sistema
+          fetch(`/api/checkout/${slug}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}),
+          }).catch(console.error);
+
+          // Redirecionamento automático suave
+          const redirectTimer = setTimeout(() => {
+            window.location.href = data.link.externalUrl;
+          }, 1400);
+          return () => clearTimeout(redirectTimer);
+        }
 
         if (data.link.acceptPix) setPaymentMethod('pix');
         else if (data.link.acceptCard) setPaymentMethod('card');
@@ -281,6 +298,78 @@ export default function CheckoutPage() {
           <h2 className="text-2xl font-bold text-surface-800 mb-2">Link não disponível</h2>
           <p className="text-surface-500 mb-6">{error || 'Este link de pagamento não foi encontrado.'}</p>
           <a href="/" className="btn-secondary inline-block">Voltar ao Início</a>
+        </div>
+      </main>
+    );
+  }
+
+  // Redirecionamento para Link de Pagamento Externo (InfinitePay, Mercado Pago Recorrente, Bancos)
+  if (linkData.linkType === 'EXTERNAL_REDIRECT' && linkData.externalUrl) {
+    const bankLabel =
+      linkData.bankProvider === 'infinitepay'
+        ? 'InfinitePay'
+        : linkData.bankProvider === 'mercadopago'
+        ? 'Mercado Pago'
+        : linkData.bankProvider === 'asaas'
+        ? 'Asaas'
+        : 'Ambiente Seguro do Banco';
+
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-slate-900 via-surface-900 to-slate-900 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl max-w-lg w-full p-8 text-center space-y-6 shadow-2xl border border-surface-200 animate-slide-up">
+          <div className="w-16 h-16 rounded-2xl bg-primary-50 border border-primary-200 flex items-center justify-center mx-auto text-3xl shadow-sm">
+            🛡️
+          </div>
+
+          <div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-3">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Checkout Criptografado & Oficial
+            </span>
+            <h2 className="text-2xl font-black text-surface-900 tracking-tight">
+              {linkData.title}
+            </h2>
+            <p className="text-surface-500 text-sm mt-1">
+              Transferindo você com segurança para o <strong>{bankLabel}</strong>...
+            </p>
+          </div>
+
+          <div className="p-4 bg-surface-50 rounded-2xl border border-surface-200 text-left">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-surface-500 font-semibold uppercase">Valor a ser pago</p>
+                <p className="text-2xl font-black text-surface-900 mt-0.5">
+                  {formatCurrency(selectedPrice.amount)}
+                  {selectedPrice.type === 'RECURRING' && (
+                    <span className="text-xs text-surface-500 font-normal ml-1">
+                      /{selectedPrice.interval === 'year' ? 'ano' : 'mês'}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <span className="badge bg-primary-100 text-primary-800 font-bold px-3 py-1">
+                {selectedPrice.type === 'RECURRING' ? '🔄 Assinatura Recorrente' : '🟢 Pagamento'}
+              </span>
+            </div>
+          </div>
+
+          {/* Barra de progresso */}
+          <div className="w-full bg-surface-100 h-2 rounded-full overflow-hidden">
+            <div className="bg-primary-600 h-full w-full animate-pulse" />
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <a
+              href={linkData.externalUrl}
+              className="btn-primary w-full py-4 text-base font-bold shadow-lg flex items-center justify-center gap-2"
+            >
+              <span>Acessar Pagamento Agora</span>
+              <span>➔</span>
+            </a>
+            <p className="text-xs text-surface-400">
+              Você será redirecionado automaticamente em instantes.
+            </p>
+          </div>
         </div>
       </main>
     );
