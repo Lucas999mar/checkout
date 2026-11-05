@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
       emailSenderName,
       emailSenderAddress,
       resendApiKey,
+      whatsappProvider,
       whatsappApiUrl,
       whatsappApiKey,
       whatsappInstance,
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
           emailSenderName: emailSenderName || 'Checkout Pro',
           emailSenderAddress: emailSenderAddress || 'onboarding@resend.dev',
           resendApiKey: resendApiKey !== undefined ? resendApiKey : null,
+          whatsappProvider: whatsappProvider || config.whatsappProvider || 'EVOLUTION',
           whatsappApiUrl: whatsappApiUrl !== undefined ? whatsappApiUrl : null,
           whatsappApiKey: whatsappApiKey !== undefined ? whatsappApiKey : null,
           whatsappInstance: whatsappInstance !== undefined ? whatsappInstance : null,
@@ -86,9 +88,10 @@ export async function POST(request: NextRequest) {
           emailSenderName: emailSenderName || 'Checkout Pro',
           emailSenderAddress: emailSenderAddress || 'onboarding@resend.dev',
           resendApiKey: resendApiKey || null,
+          whatsappProvider: whatsappProvider || 'EVOLUTION',
           whatsappApiUrl: whatsappApiUrl || null,
           whatsappApiKey: whatsappApiKey || null,
-          whatsappInstance: whatsappInstance || null,
+          whatsappInstance: whatsappInstance || 'checkout-pro',
           whatsappDefaultMsg: whatsappDefaultMsg || null,
         },
       });
@@ -99,3 +102,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

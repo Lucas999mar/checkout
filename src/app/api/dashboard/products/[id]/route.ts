@@ -41,6 +41,8 @@ export async function PATCH(
         imageUrl: body.imageUrl !== undefined ? body.imageUrl : undefined,
         deliveryType: body.deliveryType !== undefined ? body.deliveryType : undefined,
         deliveryUrl: body.deliveryUrl !== undefined ? body.deliveryUrl : undefined,
+        deliveryFileName: body.deliveryFileName !== undefined ? body.deliveryFileName : undefined,
+        deliveryFileSize: body.deliveryFileSize !== undefined ? body.deliveryFileSize : undefined,
         deliveryContent: body.deliveryContent !== undefined ? body.deliveryContent : undefined,
         deliveryInstructions: body.deliveryInstructions !== undefined ? body.deliveryInstructions : undefined,
         notifyEmail: body.notifyEmail !== undefined ? body.notifyEmail : undefined,

@@ -33,6 +33,8 @@ model Product {
   // Módulo de Entrega Automática de Infoproduto / Conteúdo Digital
   deliveryType         String?   @default("NONE") @map("delivery_type") // "NONE" | "DOWNLOAD" | "ACCESS_LINK" | "VIDEO" | "CUSTOM_TEXT"
   deliveryUrl          String?   @map("delivery_url") // Link para baixar PDF, vídeo, área de membros, drive
+  deliveryFileName     String?   @map("delivery_file_name") // Nome original do arquivo PDF / anexo
+  deliveryFileSize     Int?      @map("delivery_file_size") // Tamanho em bytes
   deliveryContent      String?   @map("delivery_content") // Chave de acesso, texto, código, licença
   deliveryInstructions String?   @map("delivery_instructions") // Instruções adicionais para o cliente
   notifyEmail          Boolean   @default(true) @map("notify_email")
@@ -251,11 +253,15 @@ model DeliveryConfig {
   smtpUser            String?   @map("smtp_user")
   smtpPass            String?   @map("smtp_pass")
   
-  // WhatsApp Gateway Config (Evolution API, Z-API, Baileys ou Webhook)
+  // WhatsApp Gateway Config (Evolution API, Z-API, WAHA ou Webhook)
+  whatsappProvider    String?   @default("EVOLUTION") @map("whatsapp_provider") // "EVOLUTION" | "WAHA" | "CUSTOM"
   whatsappApiUrl      String?   @map("whatsapp_api_url")
   whatsappApiKey      String?   @map("whatsapp_api_key")
-  whatsappInstance    String?   @map("whatsapp_instance")
+  whatsappInstance    String?   @default("checkout-pro") @map("whatsapp_instance")
   whatsappDefaultMsg  String?   @map("whatsapp_default_msg")
+  whatsappStatus      String?   @default("DISCONNECTED") @map("whatsapp_status") // "CONNECTED" | "DISCONNECTED" | "CONNECTING"
+  whatsappPhone       String?   @map("whatsapp_phone")
+  whatsappQrCode      String?   @map("whatsapp_qr_code")
   
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")

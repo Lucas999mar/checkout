@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 
 interface Price {
@@ -15,9 +15,12 @@ interface Product {
   id: string;
   name: string;
   description: string | null;
+  imageUrl: string | null;
   active: boolean;
   deliveryType?: string;
   deliveryUrl?: string | null;
+  deliveryFileName?: string | null;
+  deliveryFileSize?: number | null;
   deliveryContent?: string | null;
   deliveryInstructions?: string | null;
   notifyEmail?: boolean;
@@ -29,18 +32,34 @@ interface Product {
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
+const formatFileSize = (bytes?: number | null) => {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  // Upload States
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+
   const initialForm = {
     name: '',
     description: '',
+    imageUrl: '',
     prices: [{ amount: 0, type: 'ONE_TIME', interval: '', intervalCount: 1 }],
     deliveryType: 'DOWNLOAD', // 'DOWNLOAD' | 'ACCESS_LINK' | 'VIDEO' | 'CUSTOM_TEXT' | 'NONE'
     deliveryUrl: '',
+    deliveryFileName: '',
+    deliveryFileSize: 0,
     deliveryContent: '',
     deliveryInstructions: '',
     notifyEmail: true,
@@ -63,6 +82,82 @@ export default function ProductsPage() {
     }
   }
 
+  // Upload de Arquivo do Infoproduto (PDF, Documento, Vídeo, Zip)
+  async function handleFileUpload(file: File, isEdit = false) {
+    try {
+      setUploadingFile(true);
+      const data = new FormData();
+      data.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: data,
+      });
+
+      const resJson = await res.json();
+      if (!res.ok) throw new Error(resJson.error || 'Erro ao enviar arquivo');
+
+      toast.success(`Arquivo "${file.name}" carregado com sucesso!`);
+
+      if (isEdit && editingProduct) {
+        setEditingProduct({
+          ...editingProduct,
+          deliveryUrl: resJson.url,
+          deliveryFileName: resJson.fileName,
+          deliveryFileSize: resJson.fileSize,
+          deliveryType: 'DOWNLOAD',
+        });
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          deliveryUrl: resJson.url,
+          deliveryFileName: resJson.fileName,
+          deliveryFileSize: resJson.fileSize,
+          deliveryType: 'DOWNLOAD',
+        }));
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha no upload do arquivo');
+    } finally {
+      setUploadingFile(false);
+    }
+  }
+
+  // Upload de Imagem de Capa do Produto
+  async function handleImageUpload(file: File, isEdit = false) {
+    try {
+      setUploadingImage(true);
+      const data = new FormData();
+      data.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: data,
+      });
+
+      const resJson = await res.json();
+      if (!res.ok) throw new Error(resJson.error || 'Erro ao enviar imagem');
+
+      toast.success('Imagem de capa atualizada!');
+
+      if (isEdit && editingProduct) {
+        setEditingProduct({
+          ...editingProduct,
+          imageUrl: resJson.url,
+        });
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          imageUrl: resJson.url,
+        }));
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha no upload da imagem');
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
   async function handleCreateProduct(e: React.FormEvent) {
     e.preventDefault();
     try {
@@ -72,7 +167,7 @@ export default function ProductsPage() {
         body: JSON.stringify(formData),
       });
       if (!res.ok) throw new Error('Erro ao criar produto');
-      toast.success('Produto criado com sucesso com entrega automática configurada!');
+      toast.success('Produto e infoproduto cadastrados com sucesso!');
       setShowForm(false);
       setFormData(initialForm);
       fetchProducts();
@@ -91,8 +186,11 @@ export default function ProductsPage() {
         body: JSON.stringify({
           name: editingProduct.name,
           description: editingProduct.description,
+          imageUrl: editingProduct.imageUrl,
           deliveryType: editingProduct.deliveryType,
           deliveryUrl: editingProduct.deliveryUrl,
+          deliveryFileName: editingProduct.deliveryFileName,
+          deliveryFileSize: editingProduct.deliveryFileSize,
           deliveryContent: editingProduct.deliveryContent,
           deliveryInstructions: editingProduct.deliveryInstructions,
           notifyEmail: editingProduct.notifyEmail,
@@ -100,7 +198,7 @@ export default function ProductsPage() {
         }),
       });
       if (!res.ok) throw new Error('Erro ao atualizar produto');
-      toast.success('Produto e dados de entrega atualizados!');
+      toast.success('Produto atualizado com sucesso!');
       setEditingProduct(null);
       fetchProducts();
     } catch (err: any) {
@@ -143,7 +241,7 @@ export default function ProductsPage() {
   const getDeliveryBadge = (type?: string) => {
     switch (type) {
       case 'DOWNLOAD':
-        return { label: '📥 PDF / Arquivo', bg: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+        return { label: '📥 Download de Arquivo / PDF', bg: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
       case 'VIDEO':
         return { label: '🎬 Vídeo / Aulas', bg: 'bg-purple-100 text-purple-800 border-purple-200' };
       case 'ACCESS_LINK':
@@ -173,217 +271,138 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header com Botão de Destaque para Cadastro e Upload */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 glass-card bg-gradient-to-r from-blue-50/50 via-white to-emerald-50/50 border border-blue-100">
         <div>
-          <h2 className="text-2xl font-bold text-surface-800">Produtos & Infoprodutos</h2>
-          <p className="text-surface-500 text-sm">
-            {products.length} produto(s) cadastrado(s) com entrega digital instantânea para WhatsApp e E-mail.
+          <h2 className="text-2xl font-bold text-surface-800 flex items-center gap-2">
+            <span>📦</span> Cadastro de Produtos & Infoprodutos
+          </h2>
+          <p className="text-surface-500 text-sm mt-1">
+            Faça upload direto de <strong>PDFs, documentos, vídeos ou cursos</strong> e ative a entrega automática via WhatsApp e E-mail.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <a
-            href="/dashboard/deliveries"
-            className="btn-secondary text-sm flex items-center gap-2"
+            href="/dashboard/whatsapp"
+            className="px-3.5 py-2.5 rounded-xl text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 transition-colors flex items-center gap-1.5"
           >
-            <span>🚀</span> Ver Disparos de Entrega
+            <span>💬</span> Conectar WhatsApp (QR)
           </a>
           <button
             onClick={() => {
               setEditingProduct(null);
               setShowForm(!showForm);
+              if (!showForm) {
+                window.scrollTo({ top: 120, behavior: 'smooth' });
+              }
             }}
-            className="btn-primary"
+            className="btn-primary flex items-center gap-2 px-5 py-2.5 shadow-md hover:shadow-lg"
           >
-            {showForm ? '✕ Cancelar' : '+ Novo Produto'}
+            {showForm ? '✕ Fechar Formulário' : '📁 + Cadastrar Produto & Fazer Upload'}
           </button>
         </div>
       </div>
 
-      {/* Modal / Painel de Edição de Produto */}
-      {editingProduct && (
-        <div className="glass-card p-6 border-2 border-primary-200 shadow-xl animate-slide-up">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-surface-100">
+      {/* FORMULÁRIO DE CADASTRO COM UPLOAD DIRETO */}
+      {showForm && (
+        <div className="glass-card p-6 sm:p-8 shadow-2xl border-2 border-primary-200 animate-slide-up">
+          <div className="mb-6 pb-4 border-b border-surface-100 flex items-center justify-between">
             <div>
               <h3 className="font-bold text-surface-800 text-lg">
-                Editar Entrega Automática: <span className="text-primary-600">{editingProduct.name}</span>
+                Cadastrar Novo Produto / Infoproduto
               </h3>
-              <p className="text-xs text-surface-500">Configure o conteúdo que será disparado via WhatsApp e E-mail após a compra.</p>
+              <p className="text-xs text-surface-500">
+                Selecione o arquivo do seu computador ou informe o link da sua área de membros.
+              </p>
             </div>
             <button
-              onClick={() => setEditingProduct(null)}
+              onClick={() => setShowForm(false)}
               className="text-surface-400 hover:text-surface-700 text-sm font-semibold p-1"
             >
-              ✕ Fechar
+              ✕ Cancelar
             </button>
           </div>
 
-          <form onSubmit={handleUpdateProduct} className="space-y-5">
+          <form onSubmit={handleCreateProduct} className="space-y-6">
+            {/* Informações Básicas */}
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-surface-600 mb-1">Nome do Produto</label>
-                <input
-                  type="text"
-                  required
-                  value={editingProduct.name}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                  className="input-field"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-surface-600 mb-1">Descrição</label>
-                <input
-                  type="text"
-                  value={editingProduct.description || ''}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
-                  className="input-field"
-                />
-              </div>
-            </div>
-
-            {/* Configuração de Entrega do Infoproduto */}
-            <div className="p-4 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 rounded-xl border border-blue-200 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-blue-900 flex items-center gap-2">
-                  <span>🚀</span> Configuração da Entrega Digital
-                </span>
-                <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2.5 py-0.5 rounded-full">
-                  Disparo Automático Imediato
-                </span>
-              </div>
-
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-surface-700 mb-1">Tipo de Entrega</label>
-                  <select
-                    value={editingProduct.deliveryType || 'DOWNLOAD'}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, deliveryType: e.target.value })}
-                    className="input-field bg-white"
-                  >
-                    <option value="DOWNLOAD">📥 Download de Arquivo / PDF / Documento</option>
-                    <option value="ACCESS_LINK">🎓 Curso / Área de Membros / Link de Acesso</option>
-                    <option value="VIDEO">🎬 Vídeo / Aulas Exclusivas (Vimeo, YouTube, Drive)</option>
-                    <option value="CUSTOM_TEXT">🔑 Chave de Ativação / Licença / Senha</option>
-                    <option value="NONE">⚪ Nenhum (Apenas Cobrança)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-surface-700 mb-1">
-                    Link do Arquivo / PDF / Área de Membros
-                  </label>
-                  <input
-                    type="url"
-                    value={editingProduct.deliveryUrl || ''}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, deliveryUrl: e.target.value })}
-                    className="input-field bg-white"
-                    placeholder="https://drive.google.com/... ou https://seucurso.com/login"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-surface-700 mb-1">
-                  Chaves de Acesso / Senhas / Dados de Login (Opcional)
-                </label>
-                <textarea
-                  rows={2}
-                  value={editingProduct.deliveryContent || ''}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, deliveryContent: e.target.value })}
-                  className="input-field bg-white font-mono text-xs"
-                  placeholder="Ex: Usuário: aluno@email.com | Chave: PRO-8492-VIP"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-surface-700 mb-1">
-                  Instruções Adicionais para o Aluno / Cliente (Opcional)
-                </label>
-                <input
-                  type="text"
-                  value={editingProduct.deliveryInstructions || ''}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, deliveryInstructions: e.target.value })}
-                  className="input-field bg-white"
-                  placeholder="Ex: Baixe o arquivo PDF e salve em seu dispositivo para acesso permanente."
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-6 pt-2 border-t border-blue-100 text-xs">
-                <label className="flex items-center gap-2 cursor-pointer font-medium text-surface-700">
-                  <input
-                    type="checkbox"
-                    checked={editingProduct.notifyEmail !== false}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, notifyEmail: e.target.checked })}
-                    className="w-4 h-4 text-primary-600 rounded"
-                  />
-                  ✉️ Enviar dados e link de acesso por E-mail
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer font-medium text-surface-700">
-                  <input
-                    type="checkbox"
-                    checked={editingProduct.notifyWhatsapp !== false}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, notifyWhatsapp: e.target.checked })}
-                    className="w-4 h-4 text-primary-600 rounded"
-                  />
-                  💬 Enviar dados e link de acesso para o WhatsApp
-                </label>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setEditingProduct(null)}
-                className="btn-secondary text-sm"
-              >
-                Cancelar
-              </button>
-              <button type="submit" className="btn-primary text-sm">
-                Salvar Alterações
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Formulário de Criação de Produto */}
-      {showForm && (
-        <div className="glass-card p-6 shadow-xl border border-surface-200 animate-slide-up">
-          <div className="mb-4 pb-3 border-b border-surface-100">
-            <h3 className="font-bold text-surface-800 text-lg">Novo Produto / Infoproduto</h3>
-            <p className="text-xs text-surface-500">
-              Cadastre o produto e defina o PDF, vídeo, documento ou curso que será disparado automaticamente no pagamento aprovado.
-            </p>
-          </div>
-
-          <form onSubmit={handleCreateProduct} className="space-y-5">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-surface-600 mb-1">Nome do Produto</label>
+                <label className="block text-xs font-semibold text-surface-700 mb-1">Nome do Produto</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="input-field"
-                  placeholder="Ex: E-book Método Tráfego Lucrativo"
+                  placeholder="Ex: E-book Método Tráfego Lucrativo (PDF)"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-surface-600 mb-1">Descrição</label>
+                <label className="block text-xs font-semibold text-surface-700 mb-1">Descrição</label>
                 <input
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="input-field"
-                  placeholder="Breve resumo sobre o produto"
+                  placeholder="Resumo do conteúdo que o cliente vai receber"
                 />
               </div>
             </div>
 
-            {/* Preços */}
+            {/* Upload de Imagem de Capa do Produto */}
+            <div className="p-4 bg-surface-50 rounded-xl border border-surface-200">
+              <label className="block text-xs font-semibold text-surface-700 mb-2">
+                Imagem de Capa / Mockup do Produto (Opcional)
+              </label>
+              <div className="flex items-center gap-4">
+                {formData.imageUrl ? (
+                  <div className="relative group">
+                    <img
+                      src={formData.imageUrl}
+                      alt="Capa do Produto"
+                      className="w-16 h-16 rounded-xl object-cover border border-surface-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 rounded-xl bg-surface-100 border-2 border-dashed border-surface-300 flex items-center justify-center text-2xl text-surface-400">
+                    🖼️
+                  </div>
+                )}
+                <div>
+                  <input
+                    type="file"
+                    ref={imageInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, false);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={uploadingImage}
+                    onClick={() => imageInputRef.current?.click()}
+                    className="btn-secondary text-xs px-3 py-1.5"
+                  >
+                    {uploadingImage ? 'Enviando imagem...' : '📸 Selecionar Imagem de Capa'}
+                  </button>
+                  <p className="text-[11px] text-surface-400 mt-1">PNG, JPG ou WEBP até 10MB.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Preços & Cobrança */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-semibold text-surface-600">Preços & Cobrança</label>
+                <label className="block text-xs font-semibold text-surface-700">Preços & Cobrança</label>
                 <button type="button" onClick={addPrice} className="text-xs text-primary-600 hover:text-primary-700 font-semibold">
                   + Adicionar outro preço
                 </button>
@@ -436,24 +455,112 @@ export default function ProductsPage() {
               ))}
             </div>
 
-            {/* Módulo de Entrega Digital do Infoproduto */}
-            <div className="p-4 bg-gradient-to-br from-emerald-50/70 via-blue-50/40 to-indigo-50/60 rounded-xl border border-emerald-200/80 space-y-4">
+            {/* SEÇÃO PRINCIPAL: UPLOAD E ENTREGA DO INFOPRODUTO */}
+            <div className="p-5 sm:p-6 bg-gradient-to-br from-emerald-50/70 via-blue-50/40 to-indigo-50/60 rounded-2xl border-2 border-emerald-300 shadow-sm space-y-5">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🚀</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xl shadow-md">
+                    📥
+                  </div>
                   <div>
-                    <h4 className="text-sm font-bold text-surface-800">Entrega Digital do Infoproduto</h4>
-                    <p className="text-[11px] text-surface-500">
-                      Entregue arquivos, cursos, vídeos ou chaves automaticamente no WhatsApp e E-mail do comprador assim que o pagamento for confirmado.
+                    <h4 className="text-base font-bold text-surface-900">
+                      Arquivo do Infoproduto (Upload Direto)
+                    </h4>
+                    <p className="text-xs text-surface-500">
+                      Faça o upload do seu PDF, documento, vídeo ou zip. O comprador receberá o arquivo no WhatsApp e E-mail.
                     </p>
                   </div>
                 </div>
-                <span className="hidden sm:inline-block text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full">
-                  100% Automático
+                <span className="hidden sm:inline-block text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full uppercase">
+                  Supabase Storage
                 </span>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
+              {/* Box de Upload Drag & Drop */}
+              <div className="p-6 bg-white rounded-2xl border-2 border-dashed border-emerald-300 hover:border-emerald-400 transition-colors text-center space-y-3">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.zip,.rar,.mp4,.epub,.txt,.xlsx,.pptx"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file, false);
+                  }}
+                />
+
+                {formData.deliveryUrl ? (
+                  <div className="space-y-3 animate-fade-in">
+                    <div className="inline-flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-left">
+                      <span className="text-3xl">📄</span>
+                      <div>
+                        <p className="text-xs font-bold text-emerald-900">
+                          {formData.deliveryFileName || 'Arquivo Carregado'}
+                        </p>
+                        <p className="text-[11px] text-emerald-700">
+                          {formatFileSize(formData.deliveryFileSize)} • Armazenado no Supabase Storage
+                        </p>
+                      </div>
+                      <span className="text-xs bg-emerald-200 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                        ✓ Pronto
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-center gap-3 text-xs">
+                      <a
+                        href={formData.deliveryUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary-600 hover:underline font-semibold"
+                      >
+                        ↗ Testar Download do Arquivo
+                      </a>
+                      <span>•</span>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-surface-600 hover:underline font-semibold"
+                      >
+                        Substituir Arquivo
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-2xl mb-2">
+                      📁
+                    </div>
+                    <p className="font-bold text-sm text-surface-800">
+                      Clique no botão para escolher seu PDF ou arquivo do computador
+                    </p>
+                    <p className="text-xs text-surface-400 mt-0.5">
+                      Suporta PDF, Word, Excel, ZIP, RAR, MP4 e ePub até 100MB.
+                    </p>
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        disabled={uploadingFile}
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all disabled:opacity-50 inline-flex items-center gap-2"
+                      >
+                        {uploadingFile ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Fazendo Upload para a Nuvem...
+                          </>
+                        ) : (
+                          <>
+                            <span>⬆️</span> Selecionar Arquivo do Computador
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Ou link externo */}
+              <div className="grid sm:grid-cols-2 gap-4 pt-2">
                 <div>
                   <label className="block text-xs font-semibold text-surface-700 mb-1">
                     Tipo de Entrega
@@ -463,44 +570,45 @@ export default function ProductsPage() {
                     onChange={(e) => setFormData({ ...formData, deliveryType: e.target.value })}
                     className="input-field bg-white"
                   >
-                    <option value="DOWNLOAD">📥 Download de Arquivo / PDF / Documento</option>
-                    <option value="ACCESS_LINK">🎓 Curso / Área de Membros / Plataforma</option>
+                    <option value="DOWNLOAD">📥 Download de Arquivo / PDF (Upload ou Link)</option>
+                    <option value="ACCESS_LINK">🎓 Curso / Área de Membros / Plataforma Externa</option>
                     <option value="VIDEO">🎬 Vídeo / Aulas Exclusivas (Vimeo, YouTube, Drive)</option>
-                    <option value="CUSTOM_TEXT">🔑 Chave de Licença / Senhas / Texto Personalizado</option>
+                    <option value="CUSTOM_TEXT">🔑 Chave de Licença / Senhas / Texto</option>
                     <option value="NONE">⚪ Apenas Cobrança (Sem entrega de conteúdo)</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-surface-700 mb-1">
-                    Link do Conteúdo / Arquivo / PDF / Plataforma
+                    URL do Conteúdo (Preenchido pelo Upload ou Manual)
                   </label>
                   <input
                     type="url"
                     value={formData.deliveryUrl}
                     onChange={(e) => setFormData({ ...formData, deliveryUrl: e.target.value })}
-                    className="input-field bg-white"
-                    placeholder="https://drive.google.com/... ou https://seucurso.com/login"
+                    className="input-field bg-white font-mono text-xs"
+                    placeholder="https://... (preenchido no upload acima ou cole aqui)"
                   />
                 </div>
               </div>
 
+              {/* Chaves de Acesso / Instruções */}
               <div>
                 <label className="block text-xs font-semibold text-surface-700 mb-1">
-                  Chaves de Acesso / Senhas / Detalhes de Login (Opcional)
+                  Chaves de Acesso / Senhas / Dados de Login (Opcional)
                 </label>
                 <textarea
                   rows={2}
                   value={formData.deliveryContent}
                   onChange={(e) => setFormData({ ...formData, deliveryContent: e.target.value })}
                   className="input-field bg-white font-mono text-xs"
-                  placeholder="Ex: Seu código de ativação: VIP-7788 | Login provisório: seu email cadastrado"
+                  placeholder="Ex: Seu código de ativação: VIP-7788 | Login: seu email cadastrado"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-surface-700 mb-1">
-                  Instruções Adicionais de Acesso (Opcional)
+                  Instruções Adicionais para o Comprador (Opcional)
                 </label>
                 <input
                   type="text"
@@ -541,7 +649,7 @@ export default function ProductsPage() {
               >
                 Cancelar
               </button>
-              <button type="submit" className="btn-primary">
+              <button type="submit" className="btn-primary px-8">
                 Salvar Produto e Ativar Entrega
               </button>
             </div>
@@ -549,17 +657,169 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* Grid de Produtos */}
+      {/* MODAL / PAINEL DE EDIÇÃO DE PRODUTO */}
+      {editingProduct && (
+        <div className="glass-card p-6 sm:p-8 border-2 border-primary-300 shadow-2xl animate-slide-up">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-surface-100">
+            <div>
+              <h3 className="font-bold text-surface-800 text-lg">
+                Editar Produto: <span className="text-primary-600">{editingProduct.name}</span>
+              </h3>
+              <p className="text-xs text-surface-500">Altere informações ou faça upload de uma nova versão do arquivo.</p>
+            </div>
+            <button
+              onClick={() => setEditingProduct(null)}
+              className="text-surface-400 hover:text-surface-700 text-sm font-semibold p-1"
+            >
+              ✕ Fechar
+            </button>
+          </div>
+
+          <form onSubmit={handleUpdateProduct} className="space-y-5">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-surface-700 mb-1">Nome do Produto</label>
+                <input
+                  type="text"
+                  required
+                  value={editingProduct.name}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-surface-700 mb-1">Descrição</label>
+                <input
+                  type="text"
+                  value={editingProduct.description || ''}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                  className="input-field"
+                />
+              </div>
+            </div>
+
+            {/* Upload do Arquivo no Editar */}
+            <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-900">Arquivo do Infoproduto</span>
+                <input
+                  type="file"
+                  id="editFileInput"
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.zip,.rar,.mp4,.epub,.txt"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file, true);
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={uploadingFile}
+                  onClick={() => document.getElementById('editFileInput')?.click()}
+                  className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"
+                >
+                  {uploadingFile ? 'Carregando...' : '⬆️ Fazer Upload de Novo Arquivo'}
+                </button>
+              </div>
+
+              {editingProduct.deliveryUrl && (
+                <div className="flex items-center justify-between text-xs p-2.5 bg-white rounded-lg border border-emerald-200">
+                  <div className="flex items-center gap-2 truncate">
+                    <span>📄</span>
+                    <span className="font-semibold text-surface-800 truncate">
+                      {editingProduct.deliveryFileName || editingProduct.deliveryUrl}
+                    </span>
+                    {editingProduct.deliveryFileSize && (
+                      <span className="text-surface-400">({formatFileSize(editingProduct.deliveryFileSize)})</span>
+                    )}
+                  </div>
+                  <a
+                    href={editingProduct.deliveryUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary-600 font-bold hover:underline ml-2 whitespace-nowrap"
+                  >
+                    Baixar ↗
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-surface-700 mb-1">Tipo de Entrega</label>
+                <select
+                  value={editingProduct.deliveryType || 'DOWNLOAD'}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, deliveryType: e.target.value })}
+                  className="input-field bg-white"
+                >
+                  <option value="DOWNLOAD">📥 Download de Arquivo / PDF</option>
+                  <option value="ACCESS_LINK">🎓 Curso / Área de Membros</option>
+                  <option value="VIDEO">🎬 Vídeo / Aulas Exclusivas</option>
+                  <option value="CUSTOM_TEXT">🔑 Chave de Licença / Senhas</option>
+                  <option value="NONE">⚪ Nenhum (Apenas Cobrança)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-surface-700 mb-1">Link de Acesso</label>
+                <input
+                  type="url"
+                  value={editingProduct.deliveryUrl || ''}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, deliveryUrl: e.target.value })}
+                  className="input-field bg-white font-mono text-xs"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-surface-700 mb-1">Chaves / Senhas (Opcional)</label>
+              <textarea
+                rows={2}
+                value={editingProduct.deliveryContent || ''}
+                onChange={(e) => setEditingProduct({ ...editingProduct, deliveryContent: e.target.value })}
+                className="input-field bg-white font-mono text-xs"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditingProduct(null)}
+                className="btn-secondary text-sm"
+              >
+                Cancelar
+              </button>
+              <button type="submit" className="btn-primary text-sm px-6">
+                Salvar Alterações
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* GRID DE PRODUTOS CADASTRADOS */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {products.map((product) => {
           const badge = getDeliveryBadge(product.deliveryType);
           return (
-            <div key={product.id} className="glass-card p-6 hover:shadow-card-hover transition-all duration-300 flex flex-col justify-between">
+            <div
+              key={product.id}
+              className="glass-card p-6 hover:shadow-card-hover transition-all duration-300 flex flex-col justify-between"
+            >
               <div>
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center text-xl shadow-sm">
-                    📦
-                  </div>
+                  {product.imageUrl ? (
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="w-12 h-12 rounded-xl object-cover border border-surface-200 shadow-sm"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center text-xl shadow-sm">
+                      📦
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${badge.bg}`}>
                       {badge.label}
@@ -570,11 +830,11 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                <h3 className="font-bold text-surface-800 text-lg mb-1">{product.name}</h3>
+                <h3 className="font-bold text-surface-800 text-base mb-1">{product.name}</h3>
                 <p className="text-surface-500 text-xs mb-3 line-clamp-2">{product.description || 'Sem descrição'}</p>
 
                 {/* Preços */}
-                <div className="space-y-1.5 mb-4">
+                <div className="space-y-1.5 mb-3">
                   {product.prices.map((price) => (
                     <div key={price.id} className="flex items-center justify-between p-2 bg-surface-50 rounded-lg text-xs">
                       <span className="text-surface-500">
@@ -587,29 +847,28 @@ export default function ProductsPage() {
                   ))}
                 </div>
 
-                {/* Status de Entrega */}
-                <div className="p-2.5 bg-surface-50 rounded-lg border border-surface-200/60 mb-4 space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-surface-500 font-medium">Link do Conteúdo:</span>
+                {/* Arquivo / Link */}
+                <div className="p-3 bg-surface-50 rounded-xl border border-surface-200/60 mb-4 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-surface-500 font-medium">Arquivo / Link:</span>
                     {product.deliveryUrl ? (
                       <a
                         href={product.deliveryUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-primary-600 font-semibold hover:underline truncate max-w-[150px]"
-                        title={product.deliveryUrl}
+                        className="text-primary-600 font-bold hover:underline flex items-center gap-1 truncate max-w-[150px]"
+                        title={product.deliveryFileName || product.deliveryUrl}
                       >
-                        Abrir Link ↗
+                        <span>📥</span> {product.deliveryFileName || 'Abrir Arquivo ↗'}
                       </a>
                     ) : (
-                      <span className="text-surface-400">Não configurado</span>
+                      <span className="text-surface-400">Nenhum arquivo</span>
                     )}
                   </div>
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-surface-500 font-medium">Disparo Automático:</span>
+                    <span className="text-surface-500">Disparo Automático:</span>
                     <span className="text-surface-700 font-semibold">
                       {product.notifyEmail !== false && '✉️ Email '}{product.notifyWhatsapp !== false && '💬 WhatsApp'}
-                      {product.notifyEmail === false && product.notifyWhatsapp === false && 'Desativado'}
                     </span>
                   </div>
                 </div>
@@ -631,7 +890,7 @@ export default function ProductsPage() {
                     }}
                     className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition-colors"
                   >
-                    ✏️ Editar Entrega
+                    ✏️ Editar
                   </button>
                   <a
                     href="/dashboard/payment-links"
@@ -653,14 +912,17 @@ export default function ProductsPage() {
         })}
 
         {products.length === 0 && (
-          <div className="col-span-full text-center py-12 text-surface-400 glass-card">
-            <p className="text-5xl mb-3">📦</p>
-            <p className="font-semibold text-surface-700 text-lg">Nenhum produto cadastrado</p>
-            <p className="text-sm text-surface-400 mt-1 mb-4">
-              Clique em "+ Novo Produto" para cadastrar seu primeiro PDF, documento, vídeo ou curso com entrega automática.
+          <div className="col-span-full text-center py-16 text-surface-400 glass-card">
+            <p className="text-6xl mb-3">📁</p>
+            <p className="font-bold text-surface-800 text-lg">Nenhum produto cadastrado ainda</p>
+            <p className="text-xs text-surface-500 mt-1 mb-5 max-w-md mx-auto">
+              Clique no botão abaixo para cadastrar seu primeiro PDF, documento, vídeo ou curso com upload automático.
             </p>
-            <button onClick={() => setShowForm(true)} className="btn-primary text-sm">
-              + Cadastrar Meu Primeiro Produto
+            <button
+              onClick={() => setShowForm(true)}
+              className="btn-primary text-sm px-6 py-2.5"
+            >
+              + Cadastrar Meu Primeiro Produto & Fazer Upload
             </button>
           </div>
         )}

@@ -100,20 +100,57 @@ export async function deliverProduct(paymentId: string): Promise<DeliveryResult>
     if (notifyWhatsapp && customerPhone && config?.whatsappApiUrl) {
       try {
         const fullPhone = customerPhone.length <= 11 ? `55${customerPhone}` : customerPhone;
-        const res = await fetch(config.whatsappApiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(config.whatsappApiKey ? { 'apikey': config.whatsappApiKey, 'Authorization': `Bearer ${config.whatsappApiKey}` } : {}),
-          },
-          body: JSON.stringify({
+        const provider = config.whatsappProvider || 'EVOLUTION';
+        const cleanUrl = config.whatsappApiUrl.replace(/\/+$/, '');
+        const instance = config.whatsappInstance || 'checkout-pro';
+        const apiKey = config.whatsappApiKey || '';
+
+        let targetUrl = config.whatsappApiUrl;
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        let bodyPayload: any = {};
+
+        if (provider === 'EVOLUTION') {
+          targetUrl = cleanUrl.includes('/message/sendText') ? cleanUrl : `${cleanUrl}/message/sendText/${instance}`;
+          if (apiKey) {
+            headers['apikey'] = apiKey;
+            headers['Authorization'] = `Bearer ${apiKey}`;
+          }
+          bodyPayload = {
+            number: fullPhone,
+            text: whatsappMessage,
+            textMessage: { text: whatsappMessage },
+          };
+        } else if (provider === 'WAHA') {
+          targetUrl = cleanUrl.includes('/api/sendText') ? cleanUrl : `${cleanUrl}/api/sendText`;
+          if (apiKey) {
+            headers['X-Api-Key'] = apiKey;
+          }
+          bodyPayload = {
+            session: instance,
+            chatId: `${fullPhone}@c.us`,
+            text: whatsappMessage,
+          };
+        } else {
+          // Custom / webhook
+          if (apiKey) {
+            headers['apikey'] = apiKey;
+            headers['Authorization'] = `Bearer ${apiKey}`;
+          }
+          bodyPayload = {
             number: fullPhone,
             phone: fullPhone,
             message: whatsappMessage,
             text: whatsappMessage,
-            ...(config.whatsappInstance ? { instance: config.whatsappInstance } : {}),
-          }),
+            instance,
+          };
+        }
+
+        const res = await fetch(targetUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(bodyPayload),
         });
+
         if (res.ok) {
           whatsappSent = true;
           await prisma.deliveryLog.create({
@@ -124,7 +161,20 @@ export async function deliverProduct(paymentId: string): Promise<DeliveryResult>
               productName,
               channel: 'WHATSAPP',
               status: 'SUCCESS',
-              detail: 'Mensagem enviada com sucesso via WhatsApp API',
+              detail: `Mensagem entregue via ${provider} para ${fullPhone}`,
+            },
+          });
+        } else {
+          const errDetail = await res.text();
+          await prisma.deliveryLog.create({
+            data: {
+              paymentId: payment.id,
+              customerEmail,
+              customerPhone,
+              productName,
+              channel: 'WHATSAPP',
+              status: 'FAILED',
+              detail: `Status ${res.status}: ${errDetail.slice(0, 200)}`,
             },
           });
         }
@@ -378,3 +428,4 @@ function generateDeliveryEmailHtml(params: {
 </html>
   `;
 }
+
