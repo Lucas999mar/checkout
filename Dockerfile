@@ -1,4 +1,6 @@
-FROM evoapicloud/evolution-api:latest
+FROM devlikeapro/waha:latest
 
-EXPOSE 8080
-ENV PORT=8080
+ENV WHATSAPP_DEFAULT_ENGINE=NOWEB
+ENV WHATSAPP_API_KEY=checkout2026secretkey
+ENV PORT=3000
+EXPOSE 3000
