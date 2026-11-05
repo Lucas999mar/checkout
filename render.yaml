@@ -22,3 +22,4 @@ services:
         value: ERROR,WARN,INFO
       - key: DEL_INSTANCE
         value: "false"
+

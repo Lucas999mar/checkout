@@ -135,8 +135,24 @@ export async function GET() {
                 const qrJson = await qrRes.json();
                 if (qrJson.raw) {
                   qrCodeDataUrl = await QRCode.toDataURL(qrJson.raw);
+                } else if (qrJson.qr) {
+                  qrCodeDataUrl = qrJson.qr.startsWith('data:image') ? qrJson.qr : await QRCode.toDataURL(qrJson.qr);
                 }
               }
+            }
+
+            // Fallback para screenshot se o QR ainda não estiver formatado
+            if (!qrCodeDataUrl) {
+              try {
+                const shotRes = await fetch(`${apiUrl}/api/screenshot?session=${instance}`, {
+                  headers: { ...(apiKey ? { 'X-Api-Key': apiKey } : {}) },
+                  cache: 'no-store',
+                });
+                if (shotRes.ok) {
+                  const shotBuf = await shotRes.arrayBuffer();
+                  qrCodeDataUrl = `data:image/png;base64,${Buffer.from(shotBuf).toString('base64')}`;
+                }
+              } catch (e) {}
             }
           }
         }
@@ -333,8 +349,23 @@ export async function POST(request: NextRequest) {
               const qrJson = await qrRes.json();
               if (qrJson.raw) {
                 qrCodeDataUrl = await QRCode.toDataURL(qrJson.raw);
+              } else if (qrJson.qr) {
+                qrCodeDataUrl = qrJson.qr.startsWith('data:image') ? qrJson.qr : await QRCode.toDataURL(qrJson.qr);
               }
             }
+          }
+
+          if (!qrCodeDataUrl) {
+            try {
+              const shotRes = await fetch(`${cleanApiUrl}/api/screenshot?session=${cleanInstance}`, {
+                headers: { ...(cleanApiKey ? { 'X-Api-Key': cleanApiKey } : {}) },
+                cache: 'no-store',
+              });
+              if (shotRes.ok) {
+                const shotBuf = await shotRes.arrayBuffer();
+                qrCodeDataUrl = `data:image/png;base64,${Buffer.from(shotBuf).toString('base64')}`;
+              }
+            } catch (e) {}
           }
         } catch (e) {}
       }
