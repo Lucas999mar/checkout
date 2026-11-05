@@ -2,7 +2,11 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.aicheckout.com.br';
+// Garantir URL absoluta HTTPS de produção (nunca localhost para crawlers)
+const appUrl =
+  process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('localhost')
+    ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, '')
+    : 'https://app.aicheckout.com.br';
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
@@ -45,15 +49,19 @@ export const metadata: Metadata = {
     siteName: 'aiCheckout',
     images: [
       {
-        url: '/og-image.png',
+        url: `${appUrl}/og-image.jpg`,
+        secureUrl: `${appUrl}/og-image.jpg`,
         width: 1200,
         height: 630,
+        type: 'image/jpeg',
         alt: 'aiCheckout - Checkout Inteligente & Entrega Automática',
       },
       {
-        url: '/logo.png',
-        width: 512,
-        height: 512,
+        url: `${appUrl}/logo.jpg`,
+        secureUrl: `${appUrl}/logo.jpg`,
+        width: 600,
+        height: 600,
+        type: 'image/jpeg',
         alt: 'aiCheckout Logo',
       },
     ],
@@ -65,7 +73,13 @@ export const metadata: Metadata = {
     title: 'aiCheckout | Checkout Inteligente & Entrega Automática',
     description:
       'Plataforma completa de checkout de alta conversão com PIX instantâneo, Cartão de Crédito e Boleto Bancário. Entrega 100% automatizada de infoprodutos via WhatsApp e E-mail.',
-    images: ['/og-image.png'],
+    images: [`${appUrl}/og-image.jpg`],
+  },
+  other: {
+    'og:image:secure_url': `${appUrl}/og-image.jpg`,
+    'og:image:type': 'image/jpeg',
+    'og:image:width': '1200',
+    'og:image:height': '630',
   },
 };
 
@@ -80,6 +94,27 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
+      <head>
+        {/* Metatags diretas no head para compatibilidade máxima com o scraper do WhatsApp */}
+        <meta property="og:title" content="aiCheckout | Checkout Inteligente & Entrega Automática" />
+        <meta
+          property="og:description"
+          content="Plataforma completa de checkout de alta conversão com PIX instantâneo, Cartão de Crédito e Boleto Bancário. Entrega 100% automatizada de infoprodutos via WhatsApp e E-mail."
+        />
+        <meta property="og:image" content={`${appUrl}/og-image.jpg`} />
+        <meta property="og:image:secure_url" content={`${appUrl}/og-image.jpg`} />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="aiCheckout" />
+        <meta property="og:url" content={appUrl} />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="aiCheckout" />
+        <meta property="og:locale" content="pt_BR" />
+        <link rel="image_src" href={`${appUrl}/logo.jpg`} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content={`${appUrl}/og-image.jpg`} />
+      </head>
       <body className="font-sans">
         {children}
         <Toaster
