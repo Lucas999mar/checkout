@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
       payerFirstName,
       payerLastName,
       payerCpf,
+      payerPhone,
       productId,
       paymentLinkId,
       selectedBank,
@@ -35,14 +36,28 @@ export async function POST(request: NextRequest) {
     const bankCode = selectedBank || paymentLink?.bankProvider || 'mercadopago';
     const bankMeta = SUPPORTED_BANKS[bankCode] || SUPPORTED_BANKS.mercadopago;
 
+    // Sanitize phone number (e.g. 5511999999999)
+    const cleanPhone = payerPhone ? payerPhone.replace(/\D/g, '') : null;
+
     // Find or create customer
     let customer = await prisma.customer.findUnique({ where: { email: payerEmail } });
+    const fullName = `${payerFirstName || ''} ${payerLastName || ''}`.trim() || 'Cliente';
     if (!customer) {
       customer = await prisma.customer.create({
         data: {
           email: payerEmail,
-          name: `${payerFirstName || ''} ${payerLastName || ''}`.trim() || 'Cliente',
+          name: fullName,
           cpf: payerCpf,
+          phone: cleanPhone,
+        },
+      });
+    } else {
+      customer = await prisma.customer.update({
+        where: { id: customer.id },
+        data: {
+          ...(cleanPhone ? { phone: cleanPhone } : {}),
+          ...(payerCpf ? { cpf: payerCpf } : {}),
+          ...(fullName && fullName !== 'Cliente' ? { name: fullName } : {}),
         },
       });
     }

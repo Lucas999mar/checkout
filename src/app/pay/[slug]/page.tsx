@@ -78,10 +78,9 @@ export default function CheckoutPage() {
     fetchLink();
   }, [slug]);
 
-  // Check payment status manually or via polling
+  // Check payment status via polling (silent)
   const checkPaymentStatus = useCallback(async (paymentId: string) => {
     try {
-      setIsVerifying(true);
       const res = await fetch(`/api/payments/status/${paymentId}`);
       const data = await res.json();
       if (data.payment?.status === 'APPROVED') {
@@ -95,10 +94,35 @@ export default function CheckoutPage() {
       return false;
     } catch {
       return false;
+    }
+  }, []);
+
+  // Customer clicks "Já realizei o pagamento / Liberar Conteúdo"
+  const handleConfirmPayment = async (paymentId: string) => {
+    try {
+      setIsVerifying(true);
+      const res = await fetch(`/api/payments/status/${paymentId}?confirm=true`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.payment?.status === 'APPROVED') {
+        setPaymentStatus('APPROVED');
+        if (data.delivery) {
+          setDeliveryInfo(data.delivery);
+        }
+        toast.success('🎉 Pagamento confirmado com sucesso! Acesso liberado.');
+        return true;
+      } else {
+        toast.error('Pagamento ainda não localizado no banco. Se já pagou, tente novamente em alguns segundos.');
+        return false;
+      }
+    } catch (err: any) {
+      toast.error('Erro ao verificar pagamento. Tente novamente.');
+      return false;
     } finally {
       setIsVerifying(false);
     }
-  }, []);
+  };
 
   // Poll payment status for PIX
   const pollStatus = useCallback((paymentId: string) => {
@@ -155,6 +179,7 @@ export default function CheckoutPage() {
             payerFirstName: formData.name.split(' ')[0] || 'Cliente',
             payerLastName: formData.name.split(' ').slice(1).join(' ') || '',
             payerCpf: formData.cpf.replace(/\D/g, ''),
+            payerPhone: formData.phone.replace(/\D/g, ''),
             productId: linkData.product.id,
             paymentLinkId: linkData.id,
             selectedBank: linkData.bankProvider || 'mercadopago',
@@ -498,22 +523,29 @@ export default function CheckoutPage() {
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => checkPaymentStatus(paymentResult.paymentId)}
+              onClick={() => handleConfirmPayment(paymentResult.paymentId)}
               disabled={isVerifying}
-              className="btn-success w-full flex items-center justify-center gap-2 text-sm py-3 font-bold"
+              className="w-full py-4 px-6 rounded-xl font-extrabold text-base text-white bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 hover:from-emerald-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
             >
               {isVerifying ? (
                 <>
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Consultando Banco...
+                  Confirmando Pagamento e Liberando Conteúdo...
                 </>
               ) : (
-                '🔄 Já Paguei / Confirmar Pagamento Agora'
+                <>
+                  <span className="text-xl">✓</span>
+                  <span>Já Realizei o Pagamento / Liberar Conteúdo Agora</span>
+                </>
               )}
             </button>
+
+            <p className="text-center text-xs text-surface-500 font-medium">
+              💡 Assim que concluir a transferência no seu banco, clique no botão acima para liberar seu download e receber o acesso no WhatsApp.
+            </p>
 
             <button
               type="button"

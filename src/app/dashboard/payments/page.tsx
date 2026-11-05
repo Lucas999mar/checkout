@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 
 interface Payment {
   id: string;
@@ -10,7 +11,7 @@ interface Payment {
   mpPaymentId: string;
   createdAt: string;
   paidAt: string | null;
-  customer: { name: string; email: string } | null;
+  customer: { name: string; email: string; phone?: string | null } | null;
   product: { name: string } | null;
 }
 
@@ -52,6 +53,27 @@ export default function PaymentsPage() {
       setLoading(false);
     }
   }
+
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const handleAction = async (paymentId: string, action: 'approve' | 'deliver') => {
+    try {
+      setActionLoading(`${paymentId}-${action}`);
+      const res = await fetch('/api/dashboard/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId, action }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro na operação');
+      toast.success(action === 'approve' ? '🎉 Pagamento aprovado e produto entregue!' : '📨 Entrega reenviada com sucesso!');
+      fetchPayments();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao processar');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const map: Record<string, { bg: string; label: string }> = {
@@ -133,6 +155,7 @@ export default function PaymentsPage() {
                     <th className="text-left px-6 py-3 text-xs font-semibold text-surface-500 uppercase">Valor</th>
                     <th className="text-left px-6 py-3 text-xs font-semibold text-surface-500 uppercase">Status</th>
                     <th className="text-left px-6 py-3 text-xs font-semibold text-surface-500 uppercase">Data</th>
+                    <th className="text-right px-6 py-3 text-xs font-semibold text-surface-500 uppercase">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -157,11 +180,34 @@ export default function PaymentsPage() {
                       <td className="px-6 py-4 font-semibold text-surface-700">{formatCurrency(p.amount)}</td>
                       <td className="px-6 py-4">{getStatusBadge(p.status)}</td>
                       <td className="px-6 py-4 text-sm text-surface-500">{formatDateTime(p.createdAt)}</td>
+                      <td className="px-6 py-4 text-right">
+                        {p.status === 'PENDING' ? (
+                          <button
+                            type="button"
+                            onClick={() => handleAction(p.id, 'approve')}
+                            disabled={actionLoading === `${p.id}-approve`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all"
+                            title="Aprovar pagamento e enviar produto para WhatsApp/Email"
+                          >
+                            {actionLoading === `${p.id}-approve` ? 'Liberando...' : '✓ Aprovar & Entregar'}
+                          </button>
+                        ) : p.status === 'APPROVED' ? (
+                          <button
+                            type="button"
+                            onClick={() => handleAction(p.id, 'deliver')}
+                            disabled={actionLoading === `${p.id}-deliver`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-200 transition-all"
+                            title="Reenviar infoproduto para o cliente"
+                          >
+                            {actionLoading === `${p.id}-deliver` ? 'Enviando...' : '📨 Reenviar Entrega'}
+                          </button>
+                        ) : null}
+                      </td>
                     </tr>
                   ))}
                   {payments.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center text-surface-400">
+                      <td colSpan={8} className="px-6 py-12 text-center text-surface-400">
                         Nenhum pagamento encontrado
                       </td>
                     </tr>
