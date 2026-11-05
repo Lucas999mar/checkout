@@ -322,14 +322,23 @@ export async function POST(request: NextRequest) {
       // 2. Iniciar / Conectar WAHA
       if (provider === 'WAHA') {
         try {
-          // Inicia sessão
-          await fetch(`${cleanApiUrl}/api/sessions/start`, {
+          // Cria sessão se não existir
+          await fetch(`${cleanApiUrl}/api/sessions`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               ...(cleanApiKey ? { 'X-Api-Key': cleanApiKey } : {}),
             },
             body: JSON.stringify({ name: cleanInstance }),
+          });
+
+          // Inicia a sessão
+          await fetch(`${cleanApiUrl}/api/sessions/${cleanInstance}/start`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(cleanApiKey ? { 'X-Api-Key': cleanApiKey } : {}),
+            },
           });
 
           // Pega QR code

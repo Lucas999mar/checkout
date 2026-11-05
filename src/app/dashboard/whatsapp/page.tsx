@@ -14,11 +14,11 @@ export default function WhatsAppConnectionPage() {
   const [phone, setPhone] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
 
-  // Configuração
-  const [provider, setProvider] = useState<'EVOLUTION' | 'WAHA'>('EVOLUTION');
-  const [apiUrl, setApiUrl] = useState('http://localhost:8080');
-  const [apiKey, setApiKey] = useState('');
-  const [instance, setInstance] = useState('checkout-pro');
+  // Configuração Padrão já apontando para o Render em Produção
+  const [provider, setProvider] = useState<'EVOLUTION' | 'WAHA'>('WAHA');
+  const [apiUrl, setApiUrl] = useState('https://evolution-checkout.onrender.com');
+  const [apiKey, setApiKey] = useState('checkout2026secretkey');
+  const [instance, setInstance] = useState('default');
   const [testNumber, setTestNumber] = useState('');
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
