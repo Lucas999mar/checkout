@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getPaymentStatus } from '@/lib/mercadopago';
+import { deliverProduct } from '@/lib/delivery';
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,6 +53,15 @@ export async function POST(request: NextRequest) {
             paidAt: mpStatus.status === 'approved' ? new Date(mpStatus.dateApproved || Date.now()) : null,
           },
         });
+
+        // Se o pagamento foi aprovado, dispara automaticamente a entrega digital
+        if (newStatus === 'APPROVED' && payment.deliveryStatus !== 'DELIVERED') {
+          try {
+            await deliverProduct(payment.id);
+          } catch (deliveryErr) {
+            console.error('Erro na entrega automática via webhook MP:', deliveryErr);
+          }
+        }
 
         // Update webhook log as processed
         await prisma.webhookLog.updateMany({

@@ -36,8 +36,18 @@ export async function PATCH(
     const product = await prisma.product.update({
       where: { id },
       data: {
+        name: body.name !== undefined ? body.name : undefined,
+        description: body.description !== undefined ? body.description : undefined,
+        imageUrl: body.imageUrl !== undefined ? body.imageUrl : undefined,
+        deliveryType: body.deliveryType !== undefined ? body.deliveryType : undefined,
+        deliveryUrl: body.deliveryUrl !== undefined ? body.deliveryUrl : undefined,
+        deliveryContent: body.deliveryContent !== undefined ? body.deliveryContent : undefined,
+        deliveryInstructions: body.deliveryInstructions !== undefined ? body.deliveryInstructions : undefined,
+        notifyEmail: body.notifyEmail !== undefined ? body.notifyEmail : undefined,
+        notifyWhatsapp: body.notifyWhatsapp !== undefined ? body.notifyWhatsapp : undefined,
         active: body.active !== undefined ? body.active : undefined,
       },
+      include: { prices: true },
     });
 
     return NextResponse.json({ product });

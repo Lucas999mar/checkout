@@ -33,7 +33,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, imageUrl, prices } = body;
+    const {
+      name,
+      description,
+      imageUrl,
+      prices,
+      deliveryType,
+      deliveryUrl,
+      deliveryContent,
+      deliveryInstructions,
+      notifyEmail,
+      notifyWhatsapp,
+    } = body;
 
     if (!name || !prices?.length) {
       return NextResponse.json(
@@ -47,6 +58,12 @@ export async function POST(request: NextRequest) {
         name,
         description,
         imageUrl,
+        deliveryType: deliveryType || 'ACCESS_LINK',
+        deliveryUrl: deliveryUrl || null,
+        deliveryContent: deliveryContent || null,
+        deliveryInstructions: deliveryInstructions || null,
+        notifyEmail: notifyEmail !== undefined ? notifyEmail : true,
+        notifyWhatsapp: notifyWhatsapp !== undefined ? notifyWhatsapp : true,
         prices: {
           create: prices.map((p: any) => ({
             amount: p.amount,

@@ -29,6 +29,15 @@ model Product {
   description String?
   imageUrl    String?       @map("image_url")
   active      Boolean       @default(true)
+
+  // Módulo de Entrega Automática de Infoproduto / Conteúdo Digital
+  deliveryType         String?   @default("NONE") @map("delivery_type") // "NONE" | "DOWNLOAD" | "ACCESS_LINK" | "VIDEO" | "CUSTOM_TEXT"
+  deliveryUrl          String?   @map("delivery_url") // Link para baixar PDF, vídeo, área de membros, drive
+  deliveryContent      String?   @map("delivery_content") // Chave de acesso, texto, código, licença
+  deliveryInstructions String?   @map("delivery_instructions") // Instruções adicionais para o cliente
+  notifyEmail          Boolean   @default(true) @map("notify_email")
+  notifyWhatsapp       Boolean   @default(true) @map("notify_whatsapp")
+
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
@@ -106,6 +115,12 @@ model Payment {
   status                String        @default("PENDING")
   paidAt                DateTime?     @map("paid_at")
   expiresAt             DateTime?     @map("expires_at")
+
+  // Disparo e Entrega Digital
+  deliveredAt           DateTime?     @map("delivered_at")
+  deliveryStatus        String?       @default("PENDING") @map("delivery_status") // "PENDING" | "DELIVERED" | "FAILED"
+  deliveryError         String?       @map("delivery_error")
+  deliveryChannel       String?       @map("delivery_channel")
   
   metadata              String?
   createdAt             DateTime      @default(now()) @map("created_at")
@@ -171,6 +186,10 @@ model PaymentLink {
   acceptPix      Boolean        @default(true) @map("accept_pix")
   acceptCard     Boolean        @default(true) @map("accept_card")
   acceptBoleto   Boolean        @default(true) @map("accept_boleto")
+
+  // Sobrescrita de Entrega Digital no Link
+  deliveryUrl          String?   @map("delivery_url")
+  deliveryContent      String?   @map("delivery_content")
   
   createdAt   DateTime          @default(now()) @map("created_at")
   updatedAt   DateTime          @updatedAt @map("updated_at")
@@ -219,4 +238,44 @@ model WebhookLog {
 
   @@index([createdAt])
   @@map("webhook_logs")
+}
+
+// Configuração Central de Disparos e Notificações (E-mail e WhatsApp)
+model DeliveryConfig {
+  id                  String    @id @default(uuid())
+  emailSenderName     String    @default("Checkout Pro") @map("email_sender_name")
+  emailSenderAddress  String    @default("suporte@checkoutpro.com.br") @map("email_sender_address")
+  resendApiKey        String?   @map("resend_api_key")
+  smtpHost            String?   @map("smtp_host")
+  smtpPort            Int?      @default(587) @map("smtp_port")
+  smtpUser            String?   @map("smtp_user")
+  smtpPass            String?   @map("smtp_pass")
+  
+  // WhatsApp Gateway Config (Evolution API, Z-API, Baileys ou Webhook)
+  whatsappApiUrl      String?   @map("whatsapp_api_url")
+  whatsappApiKey      String?   @map("whatsapp_api_key")
+  whatsappInstance    String?   @map("whatsapp_instance")
+  whatsappDefaultMsg  String?   @map("whatsapp_default_msg")
+  
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@map("delivery_configs")
+}
+
+// Histórico de Disparos de Entrega
+model DeliveryLog {
+  id            String    @id @default(uuid())
+  paymentId     String    @map("payment_id")
+  customerEmail String?   @map("customer_email")
+  customerPhone String?   @map("customer_phone")
+  productName   String?   @map("product_name")
+  channel       String    @map("channel") // "EMAIL", "WHATSAPP", "SYSTEM"
+  status        String    @default("SUCCESS") @map("status") // "SUCCESS", "FAILED"
+  detail        String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([paymentId])
+  @@index([createdAt])
+  @@map("delivery_logs")
 }

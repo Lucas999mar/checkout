@@ -53,6 +53,7 @@ export default function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
   const [paymentStatus, setPaymentStatus] = useState<string>('');
+  const [deliveryInfo, setDeliveryInfo] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -85,6 +86,9 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (data.payment?.status === 'APPROVED') {
         setPaymentStatus('APPROVED');
+        if (data.delivery) {
+          setDeliveryInfo(data.delivery);
+        }
         toast.success('🎉 Pagamento aprovado com sucesso!');
         return true;
       }
@@ -259,29 +263,121 @@ export default function CheckoutPage() {
 
   // Payment approved state
   if (paymentStatus === 'APPROVED') {
+    const isDownload = deliveryInfo?.deliveryType === 'DOWNLOAD';
+    const isVideo = deliveryInfo?.deliveryType === 'VIDEO';
+    const isCourse = deliveryInfo?.deliveryType === 'ACCESS_LINK';
+
+    let actionLabel = '📥 Baixar Meu Arquivo / PDF Agora';
+    if (isVideo) actionLabel = '🎬 Assistir Vídeo / Acessar Aulas';
+    else if (isCourse) actionLabel = '🎓 Acessar Área de Membros / Curso';
+    else if (deliveryInfo?.deliveryType === 'CUSTOM_TEXT') actionLabel = '🔑 Visualizar Conteúdo';
+
     return (
-      <main className="min-h-screen bg-gradient-to-br from-accent-50 to-accent-100 flex items-center justify-center p-4">
-        <div className="glass-card p-10 text-center max-w-md animate-slide-up">
-          <div className="w-20 h-20 rounded-full bg-accent-100 flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-accent-600" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+      <main className="min-h-screen bg-gradient-to-br from-emerald-50 via-surface-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="glass-card p-8 sm:p-10 text-center max-w-lg w-full animate-slide-up shadow-2xl border-2 border-emerald-200">
+          <div className="w-20 h-20 rounded-full bg-emerald-100 border-4 border-emerald-200 flex items-center justify-center mx-auto mb-5 shadow-sm">
+            <svg className="w-10 h-10 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-surface-800 mb-2">Pagamento Confirmado! 🎉</h2>
-          <p className="text-surface-600 mb-6">
-            Seu pagamento de <strong>{formatCurrency(selectedPrice.amount)}</strong> foi aprovado com sucesso instantâneo.
+          <span className="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2">
+            Acesso Liberado Imediatamente
+          </span>
+          <h2 className="text-3xl font-extrabold text-surface-900 mb-2">Pagamento Confirmado! 🎉</h2>
+          <p className="text-surface-600 text-sm mb-6">
+            Seu pagamento de <strong>{formatCurrency(selectedPrice.amount)}</strong> referente a <strong>{linkData.title}</strong> foi aprovado com sucesso.
           </p>
-          <div className="p-4 bg-accent-50 rounded-xl border border-accent-200 text-left mb-6">
-            <p className="text-accent-800 font-semibold text-sm">Comprovante Digital:</p>
-            <p className="text-accent-700 text-xs mt-1">ID da Transação: #{paymentResult?.mpPaymentId || paymentResult?.paymentId}</p>
-            <p className="text-accent-700 text-xs mt-0.5">Cliente: {formData.name}</p>
-            <p className="text-accent-700 text-xs mt-0.5">Email: {formData.email}</p>
+
+          {/* Módulo de Acesso / Download Imediato */}
+          <div className="p-5 bg-white rounded-2xl border border-surface-200 shadow-sm text-left mb-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-surface-100 pb-2">
+              <span className="text-xs font-bold text-surface-500 uppercase tracking-wider">
+                📦 Seu Conteúdo Digital
+              </span>
+              <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Disponível
+              </span>
+            </div>
+
+            {deliveryInfo?.deliveryUrl ? (
+              <div className="text-center pt-1">
+                <a
+                  href={deliveryInfo.deliveryUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-bold text-base text-white bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+                >
+                  {actionLabel}
+                </a>
+                <p className="text-[11px] text-surface-400 mt-2 break-all">
+                  Link direto: <a href={deliveryInfo.deliveryUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{deliveryInfo.deliveryUrl}</a>
+                </p>
+              </div>
+            ) : null}
+
+            {deliveryInfo?.deliveryContent && (
+              <div className="bg-surface-50 p-3.5 rounded-xl border border-surface-200">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-bold text-surface-700">🔑 Dados de Acesso / Chave:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(deliveryInfo.deliveryContent);
+                      }
+                      toast.success('Chave copiada!');
+                    }}
+                    className="text-[11px] font-semibold text-primary-600 hover:underline"
+                  >
+                    Copiar
+                  </button>
+                </div>
+                <pre className="text-xs font-mono bg-white p-2.5 rounded-lg border border-surface-200 text-surface-800 whitespace-pre-wrap break-all">
+                  {deliveryInfo.deliveryContent}
+                </pre>
+              </div>
+            )}
+
+            {deliveryInfo?.deliveryInstructions && (
+              <div className="bg-blue-50/70 p-3 rounded-xl border border-blue-100 text-xs text-blue-900">
+                <span className="font-bold block mb-0.5">ℹ️ Orientações:</span>
+                {deliveryInfo.deliveryInstructions}
+              </div>
+            )}
+
+            {/* Botão de WhatsApp */}
+            {deliveryInfo?.whatsappDirectLink && (
+              <div className="pt-2">
+                <a
+                  href={deliveryInfo.whatsappDirectLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm text-white bg-green-500 hover:bg-green-600 transition-colors shadow-sm"
+                >
+                  <span>💬</span> Receber no meu WhatsApp
+                </a>
+              </div>
+            )}
+
+            {/* Aviso de Envio de E-mail */}
+            <div className="text-[12px] text-surface-500 flex items-center gap-2 pt-1 border-t border-surface-100">
+              <span>✉️</span>
+              <span>
+                Também enviamos uma cópia completa deste acesso para <strong>{formData.email}</strong>.
+              </span>
+            </div>
           </div>
+
+          <div className="p-3 bg-surface-100/70 rounded-xl text-left mb-6 text-xs text-surface-600 space-y-1">
+            <p><strong>Comprovante:</strong> #{paymentResult?.mpPaymentId || paymentResult?.paymentId}</p>
+            <p><strong>Cliente:</strong> {formData.name}</p>
+          </div>
+
           <button
             onClick={() => window.location.reload()}
-            className="btn-primary w-full"
+            className="btn-secondary w-full text-sm"
           >
-            Realizar Novo Pagamento
+            Fazer Novo Pedido
           </button>
         </div>
       </main>

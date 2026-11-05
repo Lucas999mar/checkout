@@ -73,6 +73,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/subscriptions', label: 'Assinaturas', icon: '🔄', exact: false },
     { href: '/dashboard/customers', label: 'Clientes', icon: '👥', exact: false },
     { href: '/dashboard/banks', label: 'Bancos & PIX', icon: '🏦', exact: false },
+    { href: '/dashboard/deliveries', label: 'Entrega Automática', icon: '🚀', exact: false },
     { href: '/dashboard/webhooks', label: 'Webhooks Log', icon: '📡', exact: false },
   ];
 

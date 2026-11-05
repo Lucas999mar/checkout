@@ -127,6 +127,8 @@ export async function POST(request: NextRequest) {
         bankProvider: bankProvider || 'mercadopago',
         pixKey: pixKey || null,
         pixBeneficiary: pixBeneficiary || null,
+        deliveryUrl: body.deliveryUrl || null,
+        deliveryContent: body.deliveryContent || null,
       },
       include: { product: true, price: true },
     });
